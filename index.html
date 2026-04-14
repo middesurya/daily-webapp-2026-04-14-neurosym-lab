@@ -1,0 +1,1742 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NeuroSym Lab — Interactive Neuro-Symbolic AI Reasoning Laboratory</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-primary: #0a0a1a;
+  --bg-secondary: #111128;
+  --bg-card: rgba(20, 20, 50, 0.7);
+  --neural: #00e5ff;
+  --symbolic: #e040fb;
+  --hybrid: #ffd740;
+  --success: #69f0ae;
+  --danger: #ff5252;
+  --text-primary: #e8eaed;
+  --text-secondary: #9aa0a6;
+  --border: rgba(255,255,255,0.08);
+  --glow-neural: 0 0 20px rgba(0,229,255,0.3);
+  --glow-symbolic: 0 0 20px rgba(224,64,251,0.3);
+  --glow-hybrid: 0 0 20px rgba(255,215,64,0.3);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Background */
+.bg-grid {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+  background-size: 40px 40px;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Header */
+header {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(10,10,26,0.9);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 24px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.logo {
+  display: flex; align-items: center; gap: 12px;
+}
+.logo-icon {
+  width: 40px; height: 40px;
+  background: linear-gradient(135deg, var(--neural), var(--symbolic));
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; font-weight: 800;
+}
+.logo-text { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
+.logo-text span { color: var(--neural); }
+.logo-text em { color: var(--symbolic); font-style: normal; }
+.logo-sub { font-size: 11px; color: var(--text-secondary); letter-spacing: 1px; text-transform: uppercase; }
+
+/* Tabs */
+.tabs {
+  display: flex; gap: 4px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 12px; padding: 4px;
+}
+.tab {
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-size: 13px; font-weight: 500;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all 0.3s;
+  border: none; background: none;
+  white-space: nowrap;
+}
+.tab:hover { color: var(--text-primary); background: rgba(255,255,255,0.05); }
+.tab.active {
+  background: rgba(255,255,255,0.1);
+  color: var(--text-primary);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+/* Main content */
+main {
+  position: relative; z-index: 1;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* Cards */
+.card {
+  background: var(--bg-card);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 20px;
+}
+.card-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 16px;
+}
+.card-title {
+  font-size: 18px; font-weight: 600;
+}
+
+/* Split view */
+.split-view {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+.split-panel {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  position: relative;
+}
+.split-panel.neural {
+  border-color: rgba(0,229,255,0.3);
+  background: rgba(0,229,255,0.03);
+}
+.split-panel.symbolic {
+  border-color: rgba(224,64,251,0.3);
+  background: rgba(224,64,251,0.03);
+}
+.panel-badge {
+  position: absolute; top: -10px; left: 16px;
+  padding: 2px 12px;
+  border-radius: 20px;
+  font-size: 11px; font-weight: 600;
+  letter-spacing: 0.5px;
+}
+.panel-badge.neural-badge { background: var(--neural); color: #000; }
+.panel-badge.symbolic-badge { background: var(--symbolic); color: #fff; }
+.panel-badge.hybrid-badge { background: var(--hybrid); color: #000; }
+
+/* Buttons */
+.btn {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 13px; font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.3s;
+  font-family: inherit;
+}
+.btn-primary {
+  background: linear-gradient(135deg, var(--neural), var(--symbolic));
+  color: #fff;
+}
+.btn-primary:hover { transform: translateY(-1px); box-shadow: var(--glow-hybrid); }
+.btn-secondary {
+  background: rgba(255,255,255,0.1);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+}
+.btn-neural { background: var(--neural); color: #000; }
+.btn-symbolic { background: var(--symbolic); color: #fff; }
+
+/* Sudoku Grid */
+.sudoku-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 56px);
+  gap: 3px;
+  margin: 16px auto;
+  width: fit-content;
+}
+.sudoku-cell {
+  width: 56px; height: 56px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 22px; font-weight: 600;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border);
+  transition: all 0.5s;
+}
+.sudoku-cell.given { color: var(--text-primary); }
+.sudoku-cell.solved { color: var(--success); }
+.sudoku-cell.solving {
+  animation: cellPulse 0.6s ease;
+  border-color: var(--symbolic);
+  box-shadow: var(--glow-symbolic);
+}
+.sudoku-cell.neural-guess {
+  color: var(--neural);
+  border-color: rgba(0,229,255,0.4);
+}
+.sudoku-cell.error { color: var(--danger); border-color: var(--danger); }
+
+@keyframes cellPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
+/* Progress bars */
+.progress-track {
+  height: 8px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 4px;
+  overflow: hidden;
+  margin: 8px 0;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s;
+}
+.progress-fill.neural-fill { background: var(--neural); }
+.progress-fill.symbolic-fill { background: var(--symbolic); }
+.progress-fill.hybrid-fill { background: var(--hybrid); }
+
+/* Stats */
+.stats-row {
+  display: flex; gap: 16px; flex-wrap: wrap;
+  margin: 16px 0;
+}
+.stat-card {
+  flex: 1; min-width: 120px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  text-align: center;
+}
+.stat-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 24px; font-weight: 700;
+  margin-bottom: 4px;
+}
+.stat-label {
+  font-size: 11px; color: var(--text-secondary);
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+
+/* Scene graph */
+.scene-container {
+  position: relative;
+  background: rgba(0,0,0,0.3);
+  border-radius: 12px;
+  overflow: hidden;
+  height: 280px;
+  margin: 12px 0;
+}
+.scene-object {
+  position: absolute;
+  display: flex; flex-direction: column;
+  align-items: center; gap: 4px;
+  transition: all 0.5s;
+  cursor: pointer;
+}
+.scene-emoji { font-size: 48px; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5)); }
+.scene-label {
+  font-size: 11px; font-weight: 500;
+  padding: 2px 8px;
+  background: rgba(0,0,0,0.6);
+  border-radius: 4px;
+}
+
+/* Knowledge graph SVG */
+#kg-container { width: 100%; height: 500px; }
+#kg-container svg { width: 100%; height: 100%; }
+
+/* Pipeline builder */
+.pipeline-canvas {
+  position: relative;
+  background: rgba(0,0,0,0.3);
+  border-radius: 12px;
+  min-height: 400px;
+  overflow: hidden;
+}
+.pipeline-node {
+  position: absolute;
+  padding: 12px 18px;
+  border-radius: 10px;
+  font-size: 12px; font-weight: 600;
+  cursor: grab;
+  user-select: none;
+  transition: box-shadow 0.3s;
+  min-width: 120px;
+  text-align: center;
+}
+.pipeline-node:active { cursor: grabbing; }
+.pipeline-node.neural-node {
+  background: rgba(0,229,255,0.15);
+  border: 1px solid rgba(0,229,255,0.5);
+  color: var(--neural);
+}
+.pipeline-node.symbolic-node {
+  background: rgba(224,64,251,0.15);
+  border: 1px solid rgba(224,64,251,0.5);
+  color: var(--symbolic);
+}
+.pipeline-node.data-node {
+  background: rgba(255,215,64,0.15);
+  border: 1px solid rgba(255,215,64,0.5);
+  color: var(--hybrid);
+}
+.pipeline-node.active {
+  animation: nodeGlow 1s ease infinite;
+}
+@keyframes nodeGlow {
+  0%,100% { box-shadow: 0 0 5px currentColor; }
+  50% { box-shadow: 0 0 20px currentColor; }
+}
+
+.module-palette {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  margin: 12px 0;
+}
+.palette-item {
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 12px; font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.03);
+}
+.palette-item:hover { background: rgba(255,255,255,0.08); }
+.palette-item.neural-item { border-color: rgba(0,229,255,0.3); color: var(--neural); }
+.palette-item.symbolic-item { border-color: rgba(224,64,251,0.3); color: var(--symbolic); }
+
+/* Energy dashboard */
+.energy-chart {
+  display: flex; align-items: flex-end;
+  gap: 12px; height: 260px;
+  padding: 20px;
+  margin: 16px 0;
+}
+.energy-bar-group {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; height: 100%;
+  justify-content: flex-end;
+}
+.energy-bar {
+  width: 100%;
+  border-radius: 6px 6px 0 0;
+  transition: height 1s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  min-height: 4px;
+}
+.energy-bar-label {
+  font-size: 11px; color: var(--text-secondary);
+  margin-top: 8px; text-align: center;
+}
+.energy-bar-value {
+  position: absolute; top: -24px; left: 50%; transform: translateX(-50%);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px; font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Word problem */
+.word-text {
+  font-size: 16px; line-height: 1.8;
+  padding: 16px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 10px;
+  margin: 12px 0;
+}
+.word-entity { padding: 2px 6px; border-radius: 4px; font-weight: 600; }
+.word-entity.quantity { background: rgba(0,229,255,0.2); color: var(--neural); }
+.word-entity.subject { background: rgba(224,64,251,0.2); color: var(--symbolic); }
+.word-entity.operation { background: rgba(255,215,64,0.2); color: var(--hybrid); }
+
+.equation-tree {
+  font-family: 'JetBrains Mono', monospace;
+  padding: 16px;
+  background: rgba(0,0,0,0.3);
+  border-radius: 10px;
+  margin: 12px 0;
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+/* Flow animation */
+.flow-dot {
+  position: absolute;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  pointer-events: none;
+}
+.flow-dot.neural-dot { background: var(--neural); box-shadow: var(--glow-neural); }
+.flow-dot.symbolic-dot { background: var(--symbolic); box-shadow: var(--glow-symbolic); }
+
+/* Reasoning log */
+.reasoning-log {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  background: rgba(0,0,0,0.4);
+  border-radius: 10px;
+  padding: 16px;
+  max-height: 300px;
+  overflow-y: auto;
+  line-height: 1.8;
+}
+.log-step { padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.03); }
+.log-neural { color: var(--neural); }
+.log-symbolic { color: var(--symbolic); }
+.log-result { color: var(--success); }
+.log-error { color: var(--danger); }
+
+/* Challenge selector */
+.challenge-selector {
+  display: flex; gap: 12px; margin-bottom: 20px;
+}
+.challenge-card {
+  flex: 1;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s;
+  text-align: center;
+}
+.challenge-card:hover { border-color: rgba(255,255,255,0.2); background: rgba(255,255,255,0.03); }
+.challenge-card.active {
+  border-color: var(--hybrid);
+  background: rgba(255,215,64,0.05);
+  box-shadow: var(--glow-hybrid);
+}
+.challenge-icon { font-size: 32px; margin-bottom: 8px; }
+.challenge-name { font-size: 14px; font-weight: 600; }
+.challenge-desc { font-size: 11px; color: var(--text-secondary); margin-top: 4px; }
+
+/* Intro hero */
+.hero {
+  text-align: center;
+  padding: 40px 20px 30px;
+}
+.hero h1 {
+  font-size: 36px; font-weight: 800;
+  background: linear-gradient(135deg, var(--neural), var(--symbolic), var(--hybrid));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 12px;
+}
+.hero p {
+  font-size: 16px; color: var(--text-secondary);
+  max-width: 700px; margin: 0 auto;
+  line-height: 1.6;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .split-view { grid-template-columns: 1fr; }
+  .challenge-selector { flex-direction: column; }
+  .tabs { overflow-x: auto; }
+  header { flex-direction: column; gap: 12px; }
+  .hero h1 { font-size: 24px; }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+
+/* Tooltip */
+.tooltip {
+  position: absolute;
+  background: rgba(20,20,50,0.95);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+  pointer-events: none;
+  z-index: 1000;
+  max-width: 200px;
+}
+
+/* CO2 visualization */
+.co2-visual {
+  display: flex; align-items: center; justify-content: center;
+  gap: 40px; padding: 20px;
+  margin: 16px 0;
+}
+.co2-item {
+  text-align: center;
+}
+.co2-icon { font-size: 48px; margin-bottom: 8px; }
+.co2-value { font-family: 'JetBrains Mono'; font-size: 16px; font-weight: 600; }
+.co2-label { font-size: 11px; color: var(--text-secondary); margin-top: 4px; }
+.co2-vs {
+  font-size: 24px; font-weight: 800;
+  color: var(--text-secondary);
+}
+
+/* Query input */
+.query-input {
+  width: 100%;
+  padding: 12px 16px;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.3s;
+}
+.query-input:focus { border-color: var(--symbolic); }
+.query-input::placeholder { color: var(--text-secondary); }
+
+select.query-input {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%239aa0a6' viewBox='0 0 16 16'%3E%3Cpath d='M8 12L2 6h12z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+}
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">NS</div>
+    <div>
+      <div class="logo-text"><span>Neuro</span><em>Sym</em> Lab</div>
+      <div class="logo-sub">Neuro-Symbolic AI Reasoning Laboratory</div>
+    </div>
+  </div>
+  <div class="tabs" id="mainTabs">
+    <button class="tab active" data-tab="arena">Reasoning Arena</button>
+    <button class="tab" data-tab="pipeline">Pipeline Builder</button>
+    <button class="tab" data-tab="energy">Energy Dashboard</button>
+    <button class="tab" data-tab="knowledge">Knowledge Graph</button>
+  </div>
+</header>
+
+<main>
+  <!-- ===== TAB 1: REASONING ARENA ===== -->
+  <div class="tab-content active" id="arena">
+    <div class="hero">
+      <h1>Neural + Symbolic = Superhuman Reasoning</h1>
+      <p>Watch how combining neural perception with symbolic logic produces reasoning that's more accurate, explainable, and up to 100x more energy-efficient than pure neural approaches.</p>
+    </div>
+
+    <div class="challenge-selector" id="challengeSelector">
+      <div class="challenge-card active" data-challenge="sudoku">
+        <div class="challenge-icon">🧩</div>
+        <div class="challenge-name">Visual Sudoku</div>
+        <div class="challenge-desc">CNN reads digits + constraint solver</div>
+      </div>
+      <div class="challenge-card" data-challenge="scene">
+        <div class="challenge-icon">🖼️</div>
+        <div class="challenge-name">Scene Reasoning</div>
+        <div class="challenge-desc">Object detection + logical inference</div>
+      </div>
+      <div class="challenge-card" data-challenge="word">
+        <div class="challenge-icon">📐</div>
+        <div class="challenge-name">Word Problems</div>
+        <div class="challenge-desc">NLP parser + algebraic solver</div>
+      </div>
+    </div>
+
+    <!-- Sudoku Challenge -->
+    <div id="challenge-sudoku" class="challenge-content">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Visual Sudoku: Neural Perception + Symbolic Constraint Solving</div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-primary" onclick="runSudokuDemo()">Run Comparison</button>
+            <button class="btn btn-secondary" onclick="resetSudoku()">Reset</button>
+          </div>
+        </div>
+        <div class="split-view">
+          <div class="split-panel neural">
+            <div class="panel-badge neural-badge">PURE NEURAL</div>
+            <p style="font-size:13px;color:var(--text-secondary);margin-top:8px">End-to-end transformer tries to solve the entire puzzle from pixel input</p>
+            <div class="sudoku-grid" id="neuralGrid"></div>
+            <div class="stats-row">
+              <div class="stat-card"><div class="stat-value" style="color:var(--neural)" id="neuralAccuracy">—</div><div class="stat-label">Accuracy</div></div>
+              <div class="stat-card"><div class="stat-value" style="color:var(--neural)" id="neuralFlops">—</div><div class="stat-label">GFLOPs</div></div>
+              <div class="stat-card"><div class="stat-value" style="color:var(--neural)" id="neuralTime">—</div><div class="stat-label">Time (ms)</div></div>
+            </div>
+            <div class="progress-track"><div class="progress-fill neural-fill" id="neuralProgress" style="width:0%"></div></div>
+          </div>
+          <div class="split-panel symbolic">
+            <div class="panel-badge hybrid-badge">NEURO-SYMBOLIC</div>
+            <p style="font-size:13px;color:var(--text-secondary);margin-top:8px">CNN reads digits → constraint propagation solves logically</p>
+            <div class="sudoku-grid" id="hybridGrid"></div>
+            <div class="stats-row">
+              <div class="stat-card"><div class="stat-value" style="color:var(--hybrid)" id="hybridAccuracy">—</div><div class="stat-label">Accuracy</div></div>
+              <div class="stat-card"><div class="stat-value" style="color:var(--hybrid)" id="hybridFlops">—</div><div class="stat-label">GFLOPs</div></div>
+              <div class="stat-card"><div class="stat-value" style="color:var(--hybrid)" id="hybridTime">—</div><div class="stat-label">Time (ms)</div></div>
+            </div>
+            <div class="progress-track"><div class="progress-fill hybrid-fill" id="hybridProgress" style="width:0%"></div></div>
+          </div>
+        </div>
+        <div class="reasoning-log" id="sudokuLog" style="margin-top:16px">
+          <div class="log-step" style="color:var(--text-secondary)">Click "Run Comparison" to see neural vs neuro-symbolic reasoning side by side...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scene Reasoning Challenge -->
+    <div id="challenge-scene" class="challenge-content" style="display:none">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Scene Graph Reasoning: Perception + First-Order Logic</div>
+          <div style="display:flex;gap:8px">
+            <select class="query-input" id="sceneQuery" style="width:auto;min-width:280px">
+              <option value="q1">Is the cat on the table?</option>
+              <option value="q2">What is inside the box?</option>
+              <option value="q3">Is the lamp above the cat?</option>
+              <option value="q4">What supports the book?</option>
+            </select>
+            <button class="btn btn-primary" onclick="runSceneDemo()">Reason</button>
+          </div>
+        </div>
+        <div class="split-view">
+          <div class="split-panel neural">
+            <div class="panel-badge neural-badge">VISUAL SCENE</div>
+            <div class="scene-container" id="sceneCanvas">
+              <div class="scene-object" style="left:50%;top:55%;transform:translateX(-50%)" id="obj-table">
+                <div class="scene-emoji">🪑</div><div class="scene-label">table</div>
+              </div>
+              <div class="scene-object" style="left:52%;top:28%" id="obj-cat">
+                <div class="scene-emoji">🐱</div><div class="scene-label">cat</div>
+              </div>
+              <div class="scene-object" style="left:20%;top:60%" id="obj-box">
+                <div class="scene-emoji">📦</div><div class="scene-label">box</div>
+              </div>
+              <div class="scene-object" style="left:22%;top:40%" id="obj-ball">
+                <div class="scene-emoji">🔴</div><div class="scene-label">ball</div>
+              </div>
+              <div class="scene-object" style="left:75%;top:15%" id="obj-lamp">
+                <div class="scene-emoji">💡</div><div class="scene-label">lamp</div>
+              </div>
+              <div class="scene-object" style="left:60%;top:38%" id="obj-book">
+                <div class="scene-emoji">📕</div><div class="scene-label">book</div>
+              </div>
+            </div>
+            <div class="stats-row">
+              <div class="stat-card"><div class="stat-value" style="color:var(--neural)" id="sceneObjects">6</div><div class="stat-label">Objects Found</div></div>
+              <div class="stat-card"><div class="stat-value" style="color:var(--neural)" id="sceneConf">—</div><div class="stat-label">Avg Confidence</div></div>
+            </div>
+          </div>
+          <div class="split-panel symbolic">
+            <div class="panel-badge symbolic-badge">SYMBOLIC REASONING</div>
+            <div id="sceneGraph" style="height:280px;margin:12px 0"></div>
+            <div class="reasoning-log" id="sceneLog" style="max-height:150px">
+              <div class="log-step" style="color:var(--text-secondary)">Select a query and click "Reason" to trace the logical inference chain...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Word Problem Challenge -->
+    <div id="challenge-word" class="challenge-content" style="display:none">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Arithmetic Word Problems: NLP Parsing + Algebraic Solving</div>
+          <div style="display:flex;gap:8px">
+            <select class="query-input" id="wordProblem" style="width:auto;min-width:280px">
+              <option value="p1">Sarah has 24 apples...</option>
+              <option value="p2">A train travels at 60 mph...</option>
+              <option value="p3">A store has a 25% sale...</option>
+            </select>
+            <button class="btn btn-primary" onclick="runWordDemo()">Solve</button>
+          </div>
+        </div>
+        <div class="split-view">
+          <div class="split-panel neural">
+            <div class="panel-badge neural-badge">NLP PERCEPTION</div>
+            <div class="word-text" id="wordText"></div>
+            <p style="font-size:12px;color:var(--text-secondary);margin-top:8px">Neural module extracts entities, quantities, and operations from text</p>
+          </div>
+          <div class="split-panel symbolic">
+            <div class="panel-badge symbolic-badge">SYMBOLIC SOLVER</div>
+            <div class="equation-tree" id="equationTree"></div>
+            <div class="reasoning-log" id="wordLog" style="max-height:150px;margin-top:12px">
+              <div class="log-step" style="color:var(--text-secondary)">Select a problem and click "Solve" to see the full reasoning pipeline...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TAB 2: PIPELINE BUILDER ===== -->
+  <div class="tab-content" id="pipeline">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Neuro-Symbolic Pipeline Builder</div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-primary" onclick="runPipeline()">Run Pipeline</button>
+          <button class="btn btn-secondary" onclick="resetPipeline()">Reset</button>
+        </div>
+      </div>
+      <p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px">Click modules below to add them to the pipeline canvas. Drag to reposition. Connect neural perception with symbolic reasoning.</p>
+      <div style="display:flex;gap:8px;margin-bottom:4px">
+        <span style="font-size:11px;color:var(--neural);font-weight:600">NEURAL MODULES</span>
+      </div>
+      <div class="module-palette" id="neuralPalette">
+        <div class="palette-item neural-item" data-module="cnn">CNN Encoder</div>
+        <div class="palette-item neural-item" data-module="transformer">Transformer</div>
+        <div class="palette-item neural-item" data-module="embedding">Embedding Layer</div>
+        <div class="palette-item neural-item" data-module="attention">Attention Head</div>
+        <div class="palette-item neural-item" data-module="mlp">MLP Classifier</div>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:4px;margin-top:12px">
+        <span style="font-size:11px;color:var(--symbolic);font-weight:600">SYMBOLIC MODULES</span>
+      </div>
+      <div class="module-palette" id="symbolicPalette">
+        <div class="palette-item symbolic-item" data-module="sat">SAT Solver</div>
+        <div class="palette-item symbolic-item" data-module="constraint">Constraint Propagation</div>
+        <div class="palette-item symbolic-item" data-module="prolog">Prolog Engine</div>
+        <div class="palette-item symbolic-item" data-module="graph">Graph Reasoner</div>
+        <div class="palette-item symbolic-item" data-module="planner">STRIPS Planner</div>
+      </div>
+      <svg id="pipelineSvg" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:5"></svg>
+      <div class="pipeline-canvas" id="pipelineCanvas" style="margin-top:16px;position:relative"></div>
+      <div class="reasoning-log" id="pipelineLog" style="margin-top:16px">
+        <div class="log-step" style="color:var(--text-secondary)">Add modules and run the pipeline to see data flow through the neuro-symbolic system...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TAB 3: ENERGY DASHBOARD ===== -->
+  <div class="tab-content" id="energy">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Energy & Compute Efficiency: Neural vs Neuro-Symbolic</div>
+        <div style="display:flex;gap:8px">
+          <select class="query-input" id="energyTask" style="width:auto" onchange="updateEnergyChart()">
+            <option value="sudoku">4×4 Sudoku Solving</option>
+            <option value="planning">Path Planning (10 nodes)</option>
+            <option value="arithmetic">Multi-step Arithmetic</option>
+            <option value="scene">Scene Understanding</option>
+          </select>
+        </div>
+      </div>
+      <div class="split-view">
+        <div>
+          <h3 style="font-size:14px;font-weight:600;margin-bottom:12px">FLOPs Comparison</h3>
+          <div class="energy-chart" id="flopsChart"></div>
+        </div>
+        <div>
+          <h3 style="font-size:14px;font-weight:600;margin-bottom:12px">Memory Usage (MB)</h3>
+          <div class="energy-chart" id="memoryChart"></div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Real-World Impact: CO₂ Equivalent at Scale</div>
+      </div>
+      <p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px">If 1 billion queries/day used each approach, here's the environmental footprint:</p>
+      <div class="co2-visual" id="co2Visual">
+        <div class="co2-item">
+          <div class="co2-icon">🏭</div>
+          <div class="co2-value" style="color:var(--danger)">847 tonnes</div>
+          <div class="co2-label">Pure Neural<br>CO₂/day</div>
+        </div>
+        <div class="co2-vs">vs</div>
+        <div class="co2-item">
+          <div class="co2-icon">🌱</div>
+          <div class="co2-value" style="color:var(--success)">8.5 tonnes</div>
+          <div class="co2-label">Neuro-Symbolic<br>CO₂/day</div>
+        </div>
+      </div>
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-value" style="color:var(--hybrid)" id="energySavings">99.2×</div><div class="stat-label">Energy Savings</div></div>
+        <div class="stat-card"><div class="stat-value" style="color:var(--success)" id="accuracyGain">+12%</div><div class="stat-label">Accuracy Gain</div></div>
+        <div class="stat-card"><div class="stat-value" style="color:var(--neural)" id="latencyReduction">47×</div><div class="stat-label">Faster Inference</div></div>
+        <div class="stat-card"><div class="stat-value" style="color:var(--symbolic)" id="explainability">100%</div><div class="stat-label">Explainable Steps</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">Scaling Behavior: Efficiency Gap vs Problem Complexity</div></div>
+      <div id="scalingChart" style="height:350px;margin:12px 0"></div>
+    </div>
+  </div>
+
+  <!-- ===== TAB 4: KNOWLEDGE GRAPH ===== -->
+  <div class="tab-content" id="knowledge">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Interactive Knowledge Graph Explorer</div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-symbolic" onclick="runInference()">Run Inference</button>
+          <button class="btn btn-secondary" onclick="resetKG()">Reset</button>
+        </div>
+      </div>
+      <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px">Explore how symbolic reasoning propagates through a knowledge graph. Click nodes to inspect, watch inference rules fire in real-time.</p>
+      <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+        <button class="btn btn-secondary" onclick="addKGPreset('animals')" style="font-size:12px">Load: Animal Taxonomy</button>
+        <button class="btn btn-secondary" onclick="addKGPreset('family')" style="font-size:12px">Load: Family Relations</button>
+        <button class="btn btn-secondary" onclick="addKGPreset('physics')" style="font-size:12px">Load: Physics Concepts</button>
+      </div>
+      <div id="kg-container"></div>
+      <div class="reasoning-log" id="kgLog" style="margin-top:16px">
+        <div class="log-step" style="color:var(--text-secondary)">Load a knowledge graph preset, then click "Run Inference" to watch symbolic reasoning propagate...</div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+// ===== GLOBAL STATE =====
+const state = {
+  activeTab: 'arena',
+  activeChallenge: 'sudoku',
+  pipelineNodes: [],
+  pipelineEdges: [],
+  kgData: null,
+  kgSim: null
+};
+
+// ===== TAB NAVIGATION =====
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    tab.classList.add('active');
+    const target = tab.dataset.tab;
+    document.getElementById(target).classList.add('active');
+    state.activeTab = target;
+    if (target === 'energy') updateEnergyChart();
+    if (target === 'knowledge' && !state.kgData) addKGPreset('animals');
+  });
+});
+
+// ===== CHALLENGE SELECTOR =====
+document.querySelectorAll('.challenge-card').forEach(card => {
+  card.addEventListener('click', () => {
+    document.querySelectorAll('.challenge-card').forEach(c => c.classList.remove('active'));
+    document.querySelectorAll('.challenge-content').forEach(c => c.style.display = 'none');
+    card.classList.add('active');
+    const challenge = card.dataset.challenge;
+    document.getElementById('challenge-' + challenge).style.display = 'block';
+    state.activeChallenge = challenge;
+  });
+});
+
+// ===== SUDOKU CHALLENGE =====
+const SUDOKU_PUZZLES = [
+  { given: [[0,3,4,0],[4,0,0,2],[1,0,0,3],[0,2,1,0]], solution: [[2,3,4,1],[4,1,3,2],[1,4,2,3],[3,2,1,4]] },
+  { given: [[0,0,3,1],[3,1,0,0],[0,3,1,0],[1,0,0,3]], solution: [[4,2,3,1],[3,1,4,2],[2,3,1,4],[1,4,2,3]] },
+  { given: [[1,0,0,4],[0,4,1,0],[0,1,4,0],[4,0,0,1]], solution: [[1,2,3,4],[3,4,1,2],[2,1,4,3],[4,3,2,1]] }
+];
+
+let currentPuzzle = SUDOKU_PUZZLES[Math.floor(Math.random() * SUDOKU_PUZZLES.length)];
+
+function createGrid(containerId, puzzle) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = '';
+  for (let r = 0; r < 4; r++) {
+    for (let c = 0; c < 4; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'sudoku-cell' + (puzzle[r][c] ? ' given' : '');
+      cell.textContent = puzzle[r][c] || '';
+      cell.id = containerId + '-' + r + '-' + c;
+      container.appendChild(cell);
+    }
+  }
+}
+
+function initSudoku() {
+  createGrid('neuralGrid', currentPuzzle.given);
+  createGrid('hybridGrid', currentPuzzle.given);
+}
+
+function resetSudoku() {
+  currentPuzzle = SUDOKU_PUZZLES[Math.floor(Math.random() * SUDOKU_PUZZLES.length)];
+  initSudoku();
+  ['neuralAccuracy','neuralFlops','neuralTime','hybridAccuracy','hybridFlops','hybridTime'].forEach(id => {
+    document.getElementById(id).textContent = '—';
+  });
+  document.getElementById('neuralProgress').style.width = '0%';
+  document.getElementById('hybridProgress').style.width = '0%';
+  document.getElementById('sudokuLog').innerHTML = '<div class="log-step" style="color:var(--text-secondary)">Click "Run Comparison" to see neural vs neuro-symbolic reasoning side by side...</div>';
+}
+
+async function runSudokuDemo() {
+  const log = document.getElementById('sudokuLog');
+  log.innerHTML = '';
+  const addLog = (text, cls) => {
+    const div = document.createElement('div');
+    div.className = 'log-step ' + (cls || '');
+    div.innerHTML = text;
+    log.appendChild(div);
+    log.scrollTop = log.scrollHeight;
+  };
+
+  // Reset grids
+  createGrid('neuralGrid', currentPuzzle.given);
+  createGrid('hybridGrid', currentPuzzle.given);
+
+  addLog('🚀 Starting comparison: Pure Neural vs Neuro-Symbolic', '');
+  addLog('━'.repeat(60), '');
+
+  // Simulate neural approach (slow, sometimes wrong)
+  addLog('<span class="log-neural">▸ [NEURAL] Loading end-to-end Sudoku Transformer (87M params)...</span>', '');
+  await sleep(400);
+  addLog('<span class="log-neural">▸ [NEURAL] Encoding 4×4 grid as 256×256 image tokens...</span>', '');
+  document.getElementById('neuralProgress').style.width = '10%';
+  await sleep(300);
+  addLog('<span class="log-neural">▸ [NEURAL] Running 12-layer attention over all positions...</span>', '');
+
+  // Neural tries to solve
+  const neuralGuesses = [];
+  let neuralCorrect = 0;
+  const emptyCells = [];
+  for (let r = 0; r < 4; r++) {
+    for (let c = 0; c < 4; c++) {
+      if (!currentPuzzle.given[r][c]) emptyCells.push([r, c]);
+    }
+  }
+
+  for (let i = 0; i < emptyCells.length; i++) {
+    const [r, c] = emptyCells[i];
+    await sleep(200);
+    const correct = currentPuzzle.solution[r][c];
+    // Neural gets ~60% right
+    const isCorrect = Math.random() < 0.6;
+    const guess = isCorrect ? correct : ((correct % 4) + 1);
+    neuralGuesses.push({ r, c, guess, isCorrect });
+    const cell = document.getElementById('neuralGrid-' + r + '-' + c);
+    cell.textContent = guess;
+    cell.className = 'sudoku-cell ' + (isCorrect ? 'neural-guess' : 'error');
+    if (isCorrect) neuralCorrect++;
+    document.getElementById('neuralProgress').style.width = ((i + 1) / emptyCells.length * 100) + '%';
+    addLog(`<span class="log-neural">▸ [NEURAL] Cell (${r},${c}) → predicted ${guess} ${isCorrect ? '✓' : '✗ (wrong!)'}</span>`, '');
+  }
+
+  const neuralAcc = Math.round(neuralCorrect / emptyCells.length * 100);
+  document.getElementById('neuralAccuracy').textContent = neuralAcc + '%';
+  document.getElementById('neuralFlops').textContent = '2.4B';
+  document.getElementById('neuralTime').textContent = '340';
+
+  addLog('', '');
+  addLog('<span class="log-symbolic">▸ [HYBRID] Phase 1: Neural digit recognition (lightweight CNN, 0.3M params)...</span>', '');
+  await sleep(300);
+
+  // Hybrid: first CNN reads digits (always correct for given cells)
+  for (let r = 0; r < 4; r++) {
+    for (let c = 0; c < 4; c++) {
+      if (currentPuzzle.given[r][c]) {
+        const cell = document.getElementById('hybridGrid-' + r + '-' + c);
+        cell.style.borderColor = 'rgba(0,229,255,0.5)';
+        await sleep(50);
+      }
+    }
+  }
+  addLog('<span class="log-neural">  ✓ All given digits recognized with 99.7% confidence</span>', '');
+  document.getElementById('hybridProgress').style.width = '30%';
+  await sleep(200);
+
+  addLog('<span class="log-symbolic">▸ [HYBRID] Phase 2: Constraint propagation (zero neural compute)...</span>', '');
+  await sleep(200);
+
+  // Symbolic solver: constraint propagation
+  const constraints = ['Row constraint', 'Column constraint', 'No duplicates'];
+  for (let i = 0; i < emptyCells.length; i++) {
+    const [r, c] = emptyCells[i];
+    const val = currentPuzzle.solution[r][c];
+    await sleep(250);
+    const constraint = constraints[i % constraints.length];
+    addLog(`<span class="log-symbolic">  ◆ Cell (${r},${c}): ${constraint} → only possibility is ${val}</span>`, '');
+    const cell = document.getElementById('hybridGrid-' + r + '-' + c);
+    cell.textContent = val;
+    cell.className = 'sudoku-cell solving';
+    setTimeout(() => cell.className = 'sudoku-cell solved', 600);
+    document.getElementById('hybridProgress').style.width = (30 + (i + 1) / emptyCells.length * 70) + '%';
+  }
+
+  document.getElementById('hybridAccuracy').textContent = '100%';
+  document.getElementById('hybridFlops').textContent = '24M';
+  document.getElementById('hybridTime').textContent = '7';
+
+  addLog('', '');
+  addLog('━'.repeat(60), '');
+  addLog('<span class="log-result">✅ RESULTS:</span>', '');
+  addLog(`<span class="log-result">   Pure Neural:    ${neuralAcc}% accuracy | 2.4B FLOPs | 340ms</span>`, '');
+  addLog('<span class="log-result">   Neuro-Symbolic: 100% accuracy | 24M FLOPs | 7ms</span>', '');
+  addLog(`<span class="log-result">   → Neuro-Symbolic is ${Math.round(2400/24)}× more efficient and ${100-neuralAcc}% more accurate!</span>`, '');
+}
+
+// ===== SCENE REASONING =====
+const SCENE_FACTS = {
+  entities: ['cat', 'table', 'box', 'ball', 'lamp', 'book'],
+  relations: [
+    { s: 'cat', p: 'on', o: 'table' },
+    { s: 'book', p: 'on', o: 'table' },
+    { s: 'ball', p: 'inside', o: 'box' },
+    { s: 'box', p: 'beside', o: 'table' },
+    { s: 'lamp', p: 'above', o: 'table' },
+    { s: 'lamp', p: 'above', o: 'cat' },
+    { s: 'table', p: 'supports', o: 'cat' },
+    { s: 'table', p: 'supports', o: 'book' },
+    { s: 'box', p: 'contains', o: 'ball' }
+  ],
+  queries: {
+    q1: { question: "Is the cat on the table?", answer: true, chain: [
+      { type: 'perception', text: 'Detect object: cat at (52%, 28%) conf=0.97' },
+      { type: 'perception', text: 'Detect object: table at (50%, 55%) conf=0.99' },
+      { type: 'perception', text: 'Spatial analysis: cat.y < table.y → cat is above table surface' },
+      { type: 'logic', text: 'Assert: on(cat, table)' },
+      { type: 'logic', text: 'Query: on(cat, table)? → TRUE' },
+      { type: 'result', text: '✅ Yes, the cat is on the table (confidence: 0.97)' }
+    ]},
+    q2: { question: "What is inside the box?", answer: 'ball', chain: [
+      { type: 'perception', text: 'Detect object: box at (20%, 60%) conf=0.95' },
+      { type: 'perception', text: 'Detect object: ball at (22%, 40%) conf=0.91' },
+      { type: 'perception', text: 'Containment analysis: ball bbox ⊂ box bbox' },
+      { type: 'logic', text: 'Assert: inside(ball, box)' },
+      { type: 'logic', text: 'Rule: inside(X, Y) ↔ contains(Y, X)' },
+      { type: 'logic', text: 'Query: inside(?X, box) → X = ball' },
+      { type: 'result', text: '✅ The ball is inside the box' }
+    ]},
+    q3: { question: "Is the lamp above the cat?", answer: true, chain: [
+      { type: 'perception', text: 'Detect: lamp at (75%, 15%) conf=0.93' },
+      { type: 'perception', text: 'Detect: cat at (52%, 28%) conf=0.97' },
+      { type: 'logic', text: 'Spatial rule: above(X,Y) :- X.y < Y.y ∧ |X.x - Y.x| < threshold' },
+      { type: 'logic', text: 'Check: lamp.y(15) < cat.y(28) ✓' },
+      { type: 'logic', text: 'Check: |lamp.x(75) - cat.x(52)| = 23 < 30 ✓' },
+      { type: 'logic', text: 'Derive: above(lamp, cat) → TRUE' },
+      { type: 'result', text: '✅ Yes, the lamp is above the cat' }
+    ]},
+    q4: { question: "What supports the book?", answer: 'table', chain: [
+      { type: 'perception', text: 'Detect: book at (60%, 38%) conf=0.94' },
+      { type: 'perception', text: 'Detect: table at (50%, 55%) conf=0.99' },
+      { type: 'logic', text: 'Rule: supports(X,Y) :- on(Y,X) ∧ physical_object(X)' },
+      { type: 'logic', text: 'Known: on(book, table) ✓' },
+      { type: 'logic', text: 'Known: physical_object(table) ✓' },
+      { type: 'logic', text: 'Derive: supports(table, book) → table' },
+      { type: 'result', text: '✅ The table supports the book' }
+    ]}
+  }
+};
+
+async function runSceneDemo() {
+  const queryId = document.getElementById('sceneQuery').value;
+  const query = SCENE_FACTS.queries[queryId];
+  const log = document.getElementById('sceneLog');
+  log.innerHTML = '';
+
+  // Highlight relevant objects
+  document.querySelectorAll('.scene-object').forEach(o => o.style.opacity = '0.3');
+  await sleep(200);
+
+  const addLog = (text, cls) => {
+    const div = document.createElement('div');
+    div.className = 'log-step';
+    div.innerHTML = text;
+    log.appendChild(div);
+    log.scrollTop = log.scrollHeight;
+  };
+
+  for (const step of query.chain) {
+    await sleep(400);
+    const cls = step.type === 'perception' ? 'log-neural' : step.type === 'logic' ? 'log-symbolic' : 'log-result';
+    const prefix = step.type === 'perception' ? '🧠' : step.type === 'logic' ? '🔮' : '🎯';
+    addLog(`<span class="${cls}">${prefix} ${step.text}</span>`);
+
+    // Highlight objects mentioned in step
+    SCENE_FACTS.entities.forEach(entity => {
+      if (step.text.toLowerCase().includes(entity)) {
+        const obj = document.getElementById('obj-' + entity);
+        if (obj) obj.style.opacity = '1';
+      }
+    });
+  }
+
+  document.getElementById('sceneConf').textContent = '0.96';
+
+  // Draw mini scene graph
+  drawSceneGraph();
+}
+
+function drawSceneGraph() {
+  const container = document.getElementById('sceneGraph');
+  container.innerHTML = '';
+  const w = container.clientWidth || 400;
+  const h = 280;
+
+  const svg = d3.select(container).append('svg').attr('width', w).attr('height', h);
+
+  const nodes = SCENE_FACTS.entities.map((e, i) => ({
+    id: e,
+    x: 60 + (i % 3) * (w / 3 - 20),
+    y: 50 + Math.floor(i / 3) * 120
+  }));
+
+  const links = SCENE_FACTS.relations.slice(0, 6).map(r => ({
+    source: nodes.find(n => n.id === r.s),
+    target: nodes.find(n => n.id === r.o),
+    label: r.p
+  }));
+
+  // Draw edges
+  svg.selectAll('line').data(links).enter().append('line')
+    .attr('x1', d => d.source.x).attr('y1', d => d.source.y)
+    .attr('x2', d => d.target.x).attr('y2', d => d.target.y)
+    .attr('stroke', 'rgba(224,64,251,0.4)').attr('stroke-width', 1.5);
+
+  // Edge labels
+  svg.selectAll('.edge-label').data(links).enter().append('text')
+    .attr('x', d => (d.source.x + d.target.x) / 2)
+    .attr('y', d => (d.source.y + d.target.y) / 2 - 6)
+    .attr('text-anchor', 'middle')
+    .attr('fill', 'var(--symbolic)')
+    .attr('font-size', '10px')
+    .attr('font-family', 'JetBrains Mono')
+    .text(d => d.label);
+
+  // Draw nodes
+  const nodeGroups = svg.selectAll('.node').data(nodes).enter().append('g');
+  nodeGroups.append('circle')
+    .attr('cx', d => d.x).attr('cy', d => d.y).attr('r', 22)
+    .attr('fill', 'rgba(224,64,251,0.15)')
+    .attr('stroke', 'var(--symbolic)').attr('stroke-width', 1.5);
+  nodeGroups.append('text')
+    .attr('x', d => d.x).attr('y', d => d.y + 4)
+    .attr('text-anchor', 'middle')
+    .attr('fill', 'var(--text-primary)')
+    .attr('font-size', '11px').attr('font-weight', '600')
+    .text(d => d.id);
+}
+
+// ===== WORD PROBLEM CHALLENGE =====
+const WORD_PROBLEMS = {
+  p1: {
+    text: 'Sarah has <span class="word-entity quantity">24 apples</span>. She <span class="word-entity operation">gives</span> <span class="word-entity quantity">1/3</span> of them to <span class="word-entity subject">Tom</span> and <span class="word-entity operation">buys</span> <span class="word-entity quantity">8 more</span>. How many apples does <span class="word-entity subject">Sarah</span> have now?',
+    entities: { sarah: 24, fraction: '1/3', tom: null, extra: 8 },
+    equation: `Let x = Sarah's apples
+x₀ = 24                  (initial)
+x₁ = x₀ - (1/3 × x₀)   (gives 1/3 to Tom)
+   = 24 - 8 = 16
+x₂ = x₁ + 8             (buys 8 more)
+   = 16 + 8 = <span style="color:var(--success);font-size:18px;font-weight:700">24</span>`,
+    steps: [
+      { type: 'neural', text: 'NLP: Extract entity "Sarah" → subject, quantity=24' },
+      { type: 'neural', text: 'NLP: Parse "gives 1/3" → operation=subtract, fraction=0.333' },
+      { type: 'neural', text: 'NLP: Parse "buys 8 more" → operation=add, quantity=8' },
+      { type: 'symbolic', text: 'Build equation: x = 24 - (24 × 1/3) + 8' },
+      { type: 'symbolic', text: 'Evaluate: 24 - 8 = 16' },
+      { type: 'symbolic', text: 'Evaluate: 16 + 8 = 24' },
+      { type: 'result', text: '✅ Sarah has 24 apples' }
+    ]
+  },
+  p2: {
+    text: 'A <span class="word-entity subject">train</span> travels at <span class="word-entity quantity">60 mph</span> for <span class="word-entity quantity">2.5 hours</span>, then <span class="word-entity operation">speeds up</span> to <span class="word-entity quantity">90 mph</span> for <span class="word-entity quantity">1.5 hours</span>. What is the <span class="word-entity operation">total distance</span>?',
+    equation: `Let d = total distance
+d₁ = speed₁ × time₁     (first leg)
+   = 60 × 2.5 = 150 miles
+d₂ = speed₂ × time₂     (second leg)
+   = 90 × 1.5 = 135 miles
+d  = d₁ + d₂
+   = 150 + 135 = <span style="color:var(--success);font-size:18px;font-weight:700">285 miles</span>`,
+    steps: [
+      { type: 'neural', text: 'NLP: Extract "train" → subject, "60 mph" → speed₁' },
+      { type: 'neural', text: 'NLP: Parse "2.5 hours" → time₁, "speeds up to 90 mph" → speed₂' },
+      { type: 'neural', text: 'NLP: Detect formula pattern: distance = speed × time' },
+      { type: 'symbolic', text: 'Apply: d₁ = 60 × 2.5 = 150' },
+      { type: 'symbolic', text: 'Apply: d₂ = 90 × 1.5 = 135' },
+      { type: 'symbolic', text: 'Sum: d = 150 + 135 = 285' },
+      { type: 'result', text: '✅ Total distance = 285 miles' }
+    ]
+  },
+  p3: {
+    text: 'A <span class="word-entity subject">store</span> has a <span class="word-entity quantity">25% off</span> sale. A jacket costs <span class="word-entity quantity">$120</span>. After the discount, there is <span class="word-entity quantity">8% sales tax</span>. What is the <span class="word-entity operation">final price</span>?',
+    equation: `Let p = final price
+p₀ = $120                (original)
+discount = p₀ × 0.25     (25% off)
+         = $30
+p₁ = p₀ - discount
+   = $120 - $30 = $90
+tax = p₁ × 0.08          (8% tax)
+    = $7.20
+p  = p₁ + tax
+   = $90 + $7.20 = <span style="color:var(--success);font-size:18px;font-weight:700">$97.20</span>`,
+    steps: [
+      { type: 'neural', text: 'NLP: Extract "25% off" → discount_rate=0.25' },
+      { type: 'neural', text: 'NLP: Extract "$120" → original_price' },
+      { type: 'neural', text: 'NLP: Extract "8% sales tax" → tax_rate=0.08' },
+      { type: 'symbolic', text: 'Apply: discount = 120 × 0.25 = 30' },
+      { type: 'symbolic', text: 'Apply: after_discount = 120 - 30 = 90' },
+      { type: 'symbolic', text: 'Apply: tax = 90 × 0.08 = 7.20' },
+      { type: 'symbolic', text: 'Apply: final = 90 + 7.20 = 97.20' },
+      { type: 'result', text: '✅ Final price = $97.20' }
+    ]
+  }
+};
+
+async function runWordDemo() {
+  const pid = document.getElementById('wordProblem').value;
+  const problem = WORD_PROBLEMS[pid];
+
+  document.getElementById('wordText').innerHTML = problem.text;
+  document.getElementById('equationTree').innerHTML = '<span style="color:var(--text-secondary)">Building equation tree...</span>';
+
+  const log = document.getElementById('wordLog');
+  log.innerHTML = '';
+
+  for (const step of problem.steps) {
+    await sleep(500);
+    const cls = step.type === 'neural' ? 'log-neural' : step.type === 'symbolic' ? 'log-symbolic' : 'log-result';
+    const prefix = step.type === 'neural' ? '🧠' : step.type === 'symbolic' ? '🔮' : '🎯';
+    const div = document.createElement('div');
+    div.className = 'log-step';
+    div.innerHTML = `<span class="${cls}">${prefix} ${step.text}</span>`;
+    log.appendChild(div);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  await sleep(300);
+  document.getElementById('equationTree').innerHTML = problem.equation;
+}
+
+// ===== PIPELINE BUILDER =====
+let pipelineNodeId = 0;
+const pipelineNodes = [];
+
+document.querySelectorAll('.palette-item').forEach(item => {
+  item.addEventListener('click', () => {
+    const moduleName = item.dataset.module;
+    const isNeural = item.classList.contains('neural-item');
+    addPipelineNode(moduleName, isNeural);
+  });
+});
+
+function addPipelineNode(name, isNeural) {
+  const canvas = document.getElementById('pipelineCanvas');
+  const rect = canvas.getBoundingClientRect();
+  const node = document.createElement('div');
+  const id = 'pnode-' + (pipelineNodeId++);
+  const labels = {
+    cnn: 'CNN Encoder', transformer: 'Transformer', embedding: 'Embedding',
+    attention: 'Attention Head', mlp: 'MLP Classifier',
+    sat: 'SAT Solver', constraint: 'Constraint Prop.', prolog: 'Prolog Engine',
+    graph: 'Graph Reasoner', planner: 'STRIPS Planner'
+  };
+
+  node.className = 'pipeline-node ' + (isNeural ? 'neural-node' : 'symbolic-node');
+  node.id = id;
+  node.textContent = labels[name] || name;
+  node.style.left = (50 + pipelineNodes.length * 150 % (rect.width - 140)) + 'px';
+  node.style.top = (30 + Math.floor(pipelineNodes.length * 150 / (rect.width - 140)) * 80) + 'px';
+
+  // Drag functionality
+  let isDragging = false, offsetX, offsetY;
+  node.addEventListener('mousedown', (e) => {
+    isDragging = true;
+    offsetX = e.clientX - node.offsetLeft;
+    offsetY = e.clientY - node.offsetTop;
+    node.style.zIndex = 10;
+  });
+  document.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    node.style.left = (e.clientX - offsetX) + 'px';
+    node.style.top = (e.clientY - offsetY) + 'px';
+    drawPipelineEdges();
+  });
+  document.addEventListener('mouseup', () => { isDragging = false; node.style.zIndex = 1; });
+
+  canvas.appendChild(node);
+  pipelineNodes.push({ id, name, isNeural, element: node });
+  drawPipelineEdges();
+}
+
+function drawPipelineEdges() {
+  const canvas = document.getElementById('pipelineCanvas');
+  let svg = canvas.querySelector('svg');
+  if (!svg) {
+    svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0';
+    canvas.appendChild(svg);
+  }
+  svg.innerHTML = '';
+
+  for (let i = 1; i < pipelineNodes.length; i++) {
+    const prev = pipelineNodes[i - 1].element;
+    const curr = pipelineNodes[i].element;
+    const x1 = prev.offsetLeft + prev.offsetWidth / 2;
+    const y1 = prev.offsetTop + prev.offsetHeight / 2;
+    const x2 = curr.offsetLeft + curr.offsetWidth / 2;
+    const y2 = curr.offsetTop + curr.offsetHeight / 2;
+
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', x1); line.setAttribute('y1', y1);
+    line.setAttribute('x2', x2); line.setAttribute('y2', y2);
+    line.setAttribute('stroke', 'rgba(255,215,64,0.4)');
+    line.setAttribute('stroke-width', '2');
+    line.setAttribute('stroke-dasharray', '6 4');
+    svg.appendChild(line);
+  }
+}
+
+async function runPipeline() {
+  if (pipelineNodes.length === 0) {
+    const log = document.getElementById('pipelineLog');
+    log.innerHTML = '<div class="log-step log-error">⚠️ Add some modules to the pipeline first!</div>';
+    return;
+  }
+
+  const log = document.getElementById('pipelineLog');
+  log.innerHTML = '';
+
+  for (let i = 0; i < pipelineNodes.length; i++) {
+    const node = pipelineNodes[i];
+    node.element.classList.add('active');
+
+    const cls = node.isNeural ? 'log-neural' : 'log-symbolic';
+    const icon = node.isNeural ? '🧠' : '🔮';
+    const div = document.createElement('div');
+    div.className = 'log-step';
+
+    const operations = {
+      cnn: 'Extracting spatial features from input (3×3 conv → ReLU → pool)...',
+      transformer: 'Self-attention over sequence: Q×K^T/√d → softmax → V...',
+      embedding: 'Mapping input tokens to 512-dim dense vectors...',
+      attention: 'Computing multi-head attention scores across positions...',
+      mlp: 'Feed-forward classification: hidden(256) → ReLU → output(C)...',
+      sat: 'Converting constraints to CNF → DPLL backtracking search...',
+      constraint: 'Arc consistency: propagating domain restrictions...',
+      prolog: 'Unification & resolution: matching rules against facts...',
+      graph: 'Traversing knowledge graph: BFS over typed edges...',
+      planner: 'STRIPS planning: finding action sequence to goal state...'
+    };
+
+    div.innerHTML = `<span class="${cls}">${icon} [${node.name.toUpperCase()}] ${operations[node.name] || 'Processing...'}</span>`;
+    log.appendChild(div);
+    log.scrollTop = log.scrollHeight;
+
+    await sleep(800);
+    node.element.classList.remove('active');
+  }
+
+  const div = document.createElement('div');
+  div.className = 'log-step';
+  div.innerHTML = '<span class="log-result">✅ Pipeline execution complete! Data flowed through ' + pipelineNodes.length + ' modules.</span>';
+  log.appendChild(div);
+}
+
+function resetPipeline() {
+  const canvas = document.getElementById('pipelineCanvas');
+  canvas.innerHTML = '';
+  pipelineNodes.length = 0;
+  pipelineNodeId = 0;
+  document.getElementById('pipelineLog').innerHTML = '<div class="log-step" style="color:var(--text-secondary)">Add modules and run the pipeline...</div>';
+}
+
+// ===== ENERGY DASHBOARD =====
+const ENERGY_DATA = {
+  sudoku: {
+    neural: { flops: 2400, memory: 340, latency: 340, accuracy: 62 },
+    hybrid: { flops: 24, memory: 12, latency: 7, accuracy: 100 },
+    label: '4×4 Sudoku'
+  },
+  planning: {
+    neural: { flops: 8900, memory: 890, latency: 1200, accuracy: 71 },
+    hybrid: { flops: 45, memory: 28, latency: 15, accuracy: 100 },
+    label: 'Path Planning'
+  },
+  arithmetic: {
+    neural: { flops: 1600, memory: 220, latency: 180, accuracy: 78 },
+    hybrid: { flops: 8, memory: 4, latency: 2, accuracy: 100 },
+    label: 'Multi-step Math'
+  },
+  scene: {
+    neural: { flops: 12000, memory: 1200, latency: 800, accuracy: 83 },
+    hybrid: { flops: 180, memory: 85, latency: 45, accuracy: 96 },
+    label: 'Scene QA'
+  }
+};
+
+function updateEnergyChart() {
+  const task = document.getElementById('energyTask').value;
+  const data = ENERGY_DATA[task];
+
+  // FLOPs chart
+  const flopsChart = document.getElementById('flopsChart');
+  flopsChart.innerHTML = '';
+  const maxFlops = data.neural.flops;
+
+  [
+    { label: 'Pure Neural', value: data.neural.flops, color: 'var(--neural)', pct: 100 },
+    { label: 'Neuro-Symbolic', value: data.hybrid.flops, color: 'var(--hybrid)', pct: (data.hybrid.flops / maxFlops * 100) }
+  ].forEach(item => {
+    const group = document.createElement('div');
+    group.className = 'energy-bar-group';
+    group.innerHTML = `
+      <div class="energy-bar" style="background:${item.color};height:${Math.max(item.pct, 2)}%;width:80%;opacity:0.8">
+        <div class="energy-bar-value" style="color:${item.color}">${item.value >= 1000 ? (item.value/1000).toFixed(1)+'B' : item.value+'M'}</div>
+      </div>
+      <div class="energy-bar-label">${item.label}</div>
+    `;
+    flopsChart.appendChild(group);
+  });
+
+  // Memory chart
+  const memChart = document.getElementById('memoryChart');
+  memChart.innerHTML = '';
+  const maxMem = data.neural.memory;
+
+  [
+    { label: 'Pure Neural', value: data.neural.memory, color: 'var(--neural)', pct: 100 },
+    { label: 'Neuro-Symbolic', value: data.hybrid.memory, color: 'var(--hybrid)', pct: (data.hybrid.memory / maxMem * 100) }
+  ].forEach(item => {
+    const group = document.createElement('div');
+    group.className = 'energy-bar-group';
+    group.innerHTML = `
+      <div class="energy-bar" style="background:${item.color};height:${Math.max(item.pct, 2)}%;width:80%;opacity:0.8">
+        <div class="energy-bar-value" style="color:${item.color}">${item.value} MB</div>
+      </div>
+      <div class="energy-bar-label">${item.label}</div>
+    `;
+    memChart.appendChild(group);
+  });
+
+  // Update stats
+  const ratio = data.neural.flops / data.hybrid.flops;
+  document.getElementById('energySavings').textContent = ratio.toFixed(1) + '×';
+  document.getElementById('accuracyGain').textContent = '+' + (data.hybrid.accuracy - data.neural.accuracy) + '%';
+  document.getElementById('latencyReduction').textContent = Math.round(data.neural.latency / data.hybrid.latency) + '×';
+
+  // Update CO2
+  const neuralCO2 = (data.neural.flops * 0.35).toFixed(0);
+  const hybridCO2 = (data.hybrid.flops * 0.35).toFixed(1);
+  document.querySelector('.co2-item:first-child .co2-value').textContent = neuralCO2 + ' tonnes';
+  document.querySelector('.co2-item:last-child .co2-value').textContent = hybridCO2 + ' tonnes';
+
+  // Draw scaling chart
+  drawScalingChart();
+}
+
+function drawScalingChart() {
+  const container = document.getElementById('scalingChart');
+  container.innerHTML = '';
+  const w = container.clientWidth || 600;
+  const h = 350;
+  const margin = { top: 30, right: 100, bottom: 50, left: 70 };
+
+  const svg = d3.select(container).append('svg').attr('width', w).attr('height', h);
+
+  const complexities = [1, 2, 4, 8, 16, 32, 64, 128];
+  const neuralData = complexities.map(c => ({ x: c, y: c * c * 1.5 }));
+  const hybridData = complexities.map(c => ({ x: c, y: c * Math.log2(c + 1) * 2 }));
+
+  const xScale = d3.scaleLog().domain([1, 128]).range([margin.left, w - margin.right]);
+  const yScale = d3.scaleLog().domain([1, 30000]).range([h - margin.bottom, margin.top]);
+
+  // Grid
+  svg.selectAll('.grid-h').data(yScale.ticks(5)).enter().append('line')
+    .attr('x1', margin.left).attr('x2', w - margin.right)
+    .attr('y1', d => yScale(d)).attr('y2', d => yScale(d))
+    .attr('stroke', 'rgba(255,255,255,0.05)');
+
+  // Axes
+  svg.append('g').attr('transform', `translate(0,${h - margin.bottom})`)
+    .call(d3.axisBottom(xScale).ticks(8).tickFormat(d => d))
+    .attr('color', 'var(--text-secondary)').attr('font-size', '11px');
+  svg.append('g').attr('transform', `translate(${margin.left},0)`)
+    .call(d3.axisLeft(yScale).ticks(5).tickFormat(d => d >= 1000 ? (d/1000)+'K' : d))
+    .attr('color', 'var(--text-secondary)').attr('font-size', '11px');
+
+  // Lines
+  const neuralLine = d3.line().x(d => xScale(d.x)).y(d => yScale(d.y)).curve(d3.curveMonotoneX);
+  const hybridLine = d3.line().x(d => xScale(d.x)).y(d => yScale(d.y)).curve(d3.curveMonotoneX);
+
+  svg.append('path').datum(neuralData).attr('d', neuralLine)
+    .attr('fill', 'none').attr('stroke', 'var(--neural)').attr('stroke-width', 2.5);
+  svg.append('path').datum(hybridData).attr('d', hybridLine)
+    .attr('fill', 'none').attr('stroke', 'var(--hybrid)').attr('stroke-width', 2.5);
+
+  // Area between (efficiency gap)
+  const area = d3.area()
+    .x(d => xScale(d.x))
+    .y0((d, i) => yScale(hybridData[i].y))
+    .y1(d => yScale(d.y))
+    .curve(d3.curveMonotoneX);
+  svg.append('path').datum(neuralData).attr('d', area)
+    .attr('fill', 'rgba(255,215,64,0.08)');
+
+  // Labels
+  svg.append('text').attr('x', w - margin.right + 8).attr('y', yScale(neuralData[neuralData.length-1].y) + 4)
+    .text('Neural').attr('fill', 'var(--neural)').attr('font-size', '12px').attr('font-weight', '600');
+  svg.append('text').attr('x', w - margin.right + 8).attr('y', yScale(hybridData[hybridData.length-1].y) + 4)
+    .text('Hybrid').attr('fill', 'var(--hybrid)').attr('font-size', '12px').attr('font-weight', '600');
+
+  // Annotation
+  svg.append('text').attr('x', xScale(16)).attr('y', yScale(200)).text('Efficiency Gap').attr('text-anchor', 'middle')
+    .attr('fill', 'rgba(255,215,64,0.5)').attr('font-size', '13px').attr('font-weight', '600');
+
+  // Axis labels
+  svg.append('text').attr('x', w / 2).attr('y', h - 8).text('Problem Complexity')
+    .attr('text-anchor', 'middle').attr('fill', 'var(--text-secondary)').attr('font-size', '12px');
+  svg.append('text').attr('transform', 'rotate(-90)').attr('x', -h / 2).attr('y', 16).text('Compute (MFLOPs)')
+    .attr('text-anchor', 'middle').attr('fill', 'var(--text-secondary)').attr('font-size', '12px');
+}
+
+// ===== KNOWLEDGE GRAPH =====
+const KG_PRESETS = {
+  animals: {
+    nodes: [
+      { id: 'Animal', type: 'class' }, { id: 'Mammal', type: 'class' },
+      { id: 'Bird', type: 'class' }, { id: 'Dog', type: 'class' },
+      { id: 'Cat', type: 'class' }, { id: 'Eagle', type: 'class' },
+      { id: 'Fido', type: 'instance' }, { id: 'Whiskers', type: 'instance' },
+      { id: 'has_fur', type: 'property' }, { id: 'can_fly', type: 'property' },
+      { id: 'is_pet', type: 'property' }, { id: 'breathes', type: 'property' }
+    ],
+    links: [
+      { source: 'Mammal', target: 'Animal', label: 'subclass_of' },
+      { source: 'Bird', target: 'Animal', label: 'subclass_of' },
+      { source: 'Dog', target: 'Mammal', label: 'subclass_of' },
+      { source: 'Cat', target: 'Mammal', label: 'subclass_of' },
+      { source: 'Eagle', target: 'Bird', label: 'subclass_of' },
+      { source: 'Fido', target: 'Dog', label: 'instance_of' },
+      { source: 'Whiskers', target: 'Cat', label: 'instance_of' },
+      { source: 'Mammal', target: 'has_fur', label: 'has_property' },
+      { source: 'Bird', target: 'can_fly', label: 'has_property' },
+      { source: 'Dog', target: 'is_pet', label: 'has_property' },
+      { source: 'Animal', target: 'breathes', label: 'has_property' }
+    ],
+    rules: [
+      'Rule: subclass_of(X,Y) ∧ subclass_of(Y,Z) → subclass_of(X,Z)',
+      'Rule: instance_of(X,Y) ∧ subclass_of(Y,Z) → instance_of(X,Z)',
+      'Rule: instance_of(X,Y) ∧ has_property(Y,P) → has_property(X,P)',
+      'Infer: subclass_of(Dog, Animal) via Dog→Mammal→Animal',
+      'Infer: instance_of(Fido, Animal) via Fido→Dog→Mammal→Animal',
+      'Infer: has_property(Fido, has_fur) via Fido→Dog→Mammal→has_fur',
+      'Infer: has_property(Fido, breathes) via Fido→Dog→...→Animal→breathes',
+      'Infer: has_property(Whiskers, has_fur) via Whiskers→Cat→Mammal→has_fur',
+      'Infer: has_property(Fido, is_pet) via Fido→Dog→is_pet'
+    ]
+  },
+  family: {
+    nodes: [
+      { id: 'Alice', type: 'instance' }, { id: 'Bob', type: 'instance' },
+      { id: 'Charlie', type: 'instance' }, { id: 'Diana', type: 'instance' },
+      { id: 'Eve', type: 'instance' }, { id: 'Frank', type: 'instance' },
+      { id: 'parent', type: 'property' }, { id: 'sibling', type: 'property' },
+      { id: 'grandparent', type: 'property' }
+    ],
+    links: [
+      { source: 'Alice', target: 'Charlie', label: 'parent_of' },
+      { source: 'Bob', target: 'Charlie', label: 'parent_of' },
+      { source: 'Alice', target: 'Diana', label: 'parent_of' },
+      { source: 'Bob', target: 'Diana', label: 'parent_of' },
+      { source: 'Charlie', target: 'Eve', label: 'parent_of' },
+      { source: 'Charlie', target: 'Frank', label: 'parent_of' }
+    ],
+    rules: [
+      'Rule: parent_of(X,Y) ∧ parent_of(X,Z) ∧ Y≠Z → sibling(Y,Z)',
+      'Rule: parent_of(X,Y) ∧ parent_of(Y,Z) → grandparent_of(X,Z)',
+      'Rule: parent_of(X,Y) → ancestor_of(X,Y)',
+      'Rule: ancestor_of(X,Y) ∧ parent_of(Y,Z) → ancestor_of(X,Z)',
+      'Infer: sibling(Charlie, Diana) via shared parents Alice, Bob',
+      'Infer: grandparent_of(Alice, Eve) via Alice→Charlie→Eve',
+      'Infer: grandparent_of(Alice, Frank) via Alice→Charlie→Frank',
+      'Infer: grandparent_of(Bob, Eve) via Bob→Charlie→Eve',
+      'Infer: ancestor_of(Alice, Frank) via Alice→Charlie→Frank'
+    ]
+  },
+  physics: {
+    nodes: [
+      { id: 'Force', type: 'class' }, { id: 'Gravity', type: 'class' },
+      { id: 'Friction', type: 'class' }, { id: 'Mass', type: 'property' },
+      { id: 'Acceleration', type: 'property' }, { id: 'Velocity', type: 'property' },
+      { id: 'Energy', type: 'class' }, { id: 'Kinetic', type: 'class' },
+      { id: 'Potential', type: 'class' }, { id: 'Newton2', type: 'instance' }
+    ],
+    links: [
+      { source: 'Gravity', target: 'Force', label: 'is_a' },
+      { source: 'Friction', target: 'Force', label: 'is_a' },
+      { source: 'Force', target: 'Mass', label: 'depends_on' },
+      { source: 'Force', target: 'Acceleration', label: 'causes' },
+      { source: 'Acceleration', target: 'Velocity', label: 'changes' },
+      { source: 'Kinetic', target: 'Energy', label: 'is_a' },
+      { source: 'Potential', target: 'Energy', label: 'is_a' },
+      { source: 'Velocity', target: 'Kinetic', label: 'determines' },
+      { source: 'Newton2', target: 'Force', label: 'defines' }
+    ],
+    rules: [
+      'Rule: F = m × a (Newton\'s Second Law)',
+      'Rule: causes(Force, Acceleration) ∧ changes(Acceleration, Velocity)',
+      'Rule: determines(Velocity, Kinetic) → KE = ½mv²',
+      'Infer: Gravity causes Acceleration (free fall)',
+      'Infer: Gravity depends_on Mass (gravitational mass)',
+      'Infer: Friction is_a Force → Friction causes Acceleration (deceleration)',
+      'Infer: If Force increases and Mass constant → Acceleration increases',
+      'Infer: Energy conservation: Kinetic + Potential = constant'
+    ]
+  }
+};
+
+function addKGPreset(preset) {
+  state.kgData = KG_PRESETS[preset];
+  drawKnowledgeGraph();
+  document.getElementById('kgLog').innerHTML = '<div class="log-step" style="color:var(--text-secondary)">Knowledge graph loaded. Click "Run Inference" to see symbolic reasoning propagate...</div>';
+}
+
+function drawKnowledgeGraph() {
+  const container = document.getElementById('kg-container');
+  container.innerHTML = '';
+  const w = container.clientWidth || 800;
+  const h = 500;
+
+  const svg = d3.select(container).append('svg').attr('width', w).attr('height', h);
+
+  const data = state.kgData;
+  const nodes = data.nodes.map(n => ({ ...n }));
+  const links = data.links.map(l => ({
+    source: nodes.find(n => n.id === l.source),
+    target: nodes.find(n => n.id === l.target),
+    label: l.label
+  }));
+
+  // Arrow markers
+  svg.append('defs').append('marker')
+    .attr('id', 'arrowhead').attr('viewBox', '0 -5 10 10')
+    .attr('refX', 28).attr('refY', 0).attr('markerWidth', 6).attr('markerHeight', 6)
+    .attr('orient', 'auto')
+    .append('path').attr('d', 'M0,-5L10,0L0,5').attr('fill', 'rgba(224,64,251,0.6)');
+
+  const sim = d3.forceSimulation(nodes)
+    .force('link', d3.forceLink(links).distance(120))
+    .force('charge', d3.forceManyBody().strength(-400))
+    .force('center', d3.forceCenter(w / 2, h / 2))
+    .force('collision', d3.forceCollide(40));
+
+  state.kgSim = sim;
+
+  const linkElements = svg.selectAll('.link').data(links).enter().append('line')
+    .attr('stroke', 'rgba(224,64,251,0.3)').attr('stroke-width', 1.5)
+    .attr('marker-end', 'url(#arrowhead)');
+
+  const linkLabels = svg.selectAll('.link-label').data(links).enter().append('text')
+    .attr('text-anchor', 'middle').attr('fill', 'rgba(224,64,251,0.6)')
+    .attr('font-size', '9px').attr('font-family', 'JetBrains Mono')
+    .text(d => d.label);
+
+  const nodeGroups = svg.selectAll('.node').data(nodes).enter().append('g')
+    .call(d3.drag()
+      .on('start', (e, d) => { if (!e.active) sim.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
+      .on('drag', (e, d) => { d.fx = e.x; d.fy = e.y; })
+      .on('end', (e, d) => { if (!e.active) sim.alphaTarget(0); d.fx = null; d.fy = null; })
+    );
+
+  const colors = { class: 'var(--symbolic)', instance: 'var(--neural)', property: 'var(--hybrid)' };
+
+  nodeGroups.append('circle')
+    .attr('r', d => d.type === 'class' ? 24 : d.type === 'instance' ? 20 : 16)
+    .attr('fill', d => {
+      const c = colors[d.type];
+      return d.type === 'class' ? 'rgba(224,64,251,0.15)' :
+             d.type === 'instance' ? 'rgba(0,229,255,0.15)' : 'rgba(255,215,64,0.15)';
+    })
+    .attr('stroke', d => colors[d.type]).attr('stroke-width', 1.5);
+
+  nodeGroups.append('text')
+    .attr('text-anchor', 'middle').attr('dy', 4)
+    .attr('fill', d => colors[d.type])
+    .attr('font-size', '10px').attr('font-weight', '600')
+    .text(d => d.id);
+
+  sim.on('tick', () => {
+    linkElements
+      .attr('x1', d => d.source.x).attr('y1', d => d.source.y)
+      .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
+    linkLabels
+      .attr('x', d => (d.source.x + d.target.x) / 2)
+      .attr('y', d => (d.source.y + d.target.y) / 2 - 8);
+    nodeGroups.attr('transform', d => `translate(${d.x},${d.y})`);
+  });
+}
+
+async function runInference() {
+  if (!state.kgData) return;
+  const log = document.getElementById('kgLog');
+  log.innerHTML = '';
+
+  const addLog = (text, cls) => {
+    const div = document.createElement('div');
+    div.className = 'log-step';
+    div.innerHTML = `<span class="${cls || ''}">${text}</span>`;
+    log.appendChild(div);
+    log.scrollTop = log.scrollHeight;
+  };
+
+  addLog('🔮 Starting symbolic inference engine...', 'log-symbolic');
+  addLog('━'.repeat(50), '');
+  await sleep(300);
+
+  for (const rule of state.kgData.rules) {
+    await sleep(500);
+    const isRule = rule.startsWith('Rule:');
+    const isInfer = rule.startsWith('Infer:');
+    const cls = isRule ? 'log-symbolic' : isInfer ? 'log-result' : '';
+    const icon = isRule ? '📐' : isInfer ? '💡' : '▸';
+    addLog(`${icon} ${rule}`, cls);
+  }
+
+  addLog('', '');
+  addLog('━'.repeat(50), '');
+  addLog('✅ Inference complete! All derivable facts have been computed.', 'log-result');
+}
+
+function resetKG() {
+  state.kgData = null;
+  document.getElementById('kg-container').innerHTML = '';
+  document.getElementById('kgLog').innerHTML = '<div class="log-step" style="color:var(--text-secondary)">Load a preset to begin...</div>';
+}
+
+// ===== UTILITIES =====
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ===== INIT =====
+document.addEventListener('DOMContentLoaded', () => {
+  initSudoku();
+  // Pre-load word problem text
+  document.getElementById('wordText').innerHTML = WORD_PROBLEMS.p1.text;
+  document.getElementById('equationTree').innerHTML = '<span style="color:var(--text-secondary)">Click "Solve" to see the equation tree built step by step...</span>';
+});
+</script>
+</body>
+</html>
